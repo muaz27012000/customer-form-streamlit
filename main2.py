@@ -6,6 +6,10 @@ from reportlab.pdfgen import canvas
 
 # Nama file database
 db_file = "database_customer.xlsx"
+lampiran_folder = "lampiran"
+
+# Pastikan folder lampiran ada
+os.makedirs(lampiran_folder, exist_ok=True)
 
 # Fungsi generate PDF
 def generate_pdf(data, filename="customer_form.pdf"):
@@ -40,7 +44,6 @@ def generate_pdf(data, filename="customer_form.pdf"):
             y = height - 100
 
     c.save()
-
     return filename
 
 st.title("📋 Customer Profile Form")
@@ -79,8 +82,8 @@ email_purchasing = st.text_input("18. Email Purchasing")
 telp_purchasing = st.text_input("19. No. Telp Purchasing")
 
 # --- Bagian Lampiran ---
-st.subheader("Lampiran (Checklist + Link Drive)")
-lampiran = {}
+st.subheader("Lampiran (Upload File)")
+lampiran_files = {}
 for item in [
     "NPWP atau KTP",
     "NIB",
@@ -88,9 +91,14 @@ for item in [
     "KTP Penanggung Jawab",
     "Share Location Alamat Pengiriman Barang"
 ]:
-    cek = st.checkbox(item)
-    link = st.text_input(f"Link {item}")
-    lampiran[item] = {"ceklist": cek, "link": link}
+    uploaded_file = st.file_uploader(f"Upload {item}", type=["pdf", "jpg", "png"], key=item)
+    if uploaded_file:
+        file_path = os.path.join(lampiran_folder, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        lampiran_files[item] = uploaded_file.name
+    else:
+        lampiran_files[item] = ""
 
 # --- Tombol Simpan ---
 if st.button("💾 Simpan"):
@@ -123,10 +131,9 @@ if st.button("💾 Simpan"):
         "No. Telp Purchasing": telp_purchasing,
     }
 
-    # Tambahkan lampiran ke data
-    for item, val in lampiran.items():
-        data[item] = "Ya" if val["ceklist"] else "Tidak"
-        data[item + " Link"] = val["link"]
+    # Tambahkan nama file lampiran ke data
+    for item, filename in lampiran_files.items():
+        data[item] = filename if filename else "Tidak ada"
 
     # Simpan ke Excel
     if not os.path.exists(db_file):
